@@ -17,20 +17,11 @@ from calls import CalculationWorker
 from result_details import ResultDetailsDialog
 import storage_sql as storage
 
-
-
-# -------------------------------
-#  Путь к ресурсам (PyInstaller)
-# -------------------------------
 def resource_path(rel_path):
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, rel_path)
     return os.path.join(os.path.abspath("."), rel_path)
 
-
-# -------------------------------
-#  Загрузка таблицы стилей
-# -------------------------------
 def load_stylesheet(filename: str) -> str:
     path = resource_path(os.path.join("client", filename))
     try:
@@ -40,20 +31,11 @@ def load_stylesheet(filename: str) -> str:
         print(f"Файл стилей не найден: {path}")
         return ""
 
-
-# -------------------------------
-#  Главное окно
-# -------------------------------
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        # -------------------------------
-        # 🚀 Запуск backend как отдельного процесса
-        # -------------------------------
-
         self._loading_workers = []
-        self._active_workers = []  # Список для хранения активных worker'ов
+        self._active_workers = []
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.default_width, self.default_height = 1000, 700
         self.resize(self.default_width, self.default_height)
@@ -118,39 +100,29 @@ class MainWindow(QMainWindow):
         storage.setup()
         self.load_from_db()
 
-    # -------------------------------
-    #  Очистка worker'ов
-    # -------------------------------
+
     def _cleanup_worker(self, worker):
-        """Удаляет worker из списка активных после завершения"""
         if worker in self._active_workers:
             self._active_workers.remove(worker)
-        
-        # Ждем завершения потока и удаляем объект
         if worker.isRunning():
-            worker.wait(1000)  # Ждем до 1 секунды
+            worker.wait(1000)
         worker.deleteLater()
 
-    # -------------------------------
-    #  Корректное завершение backend
-    # -------------------------------
+
     def closeEvent(self, event):
-        # Завершаем все активные worker'ы
-        for worker in self._active_workers[:]:  # Копия списка для безопасной итерации
+        for worker in self._active_workers[:]:
             if worker.isRunning():
-                worker.stop()  # Сигнализируем о необходимости остановки
-                worker.quit()  # Завершаем event loop потока
-                if not worker.wait(2000):  # Ждем до 2 секунд
-                    worker.terminate()  # Принудительно завершаем если не отвечает
-                    worker.wait(1000)  # Ждем завершения
+                worker.stop()
+                worker.quit()
+                if not worker.wait(2000):
+                    worker.terminate()
+                    worker.wait(1000)
             worker.deleteLater()
         
         self._active_workers.clear()
         event.accept()
 
-    # -------------------------------
-    #  Title bar
-    # -------------------------------
+
     def _create_title_bar(self) -> QFrame:
         title_bar = QFrame()
         title_bar.setFixedHeight(50)
@@ -163,8 +135,7 @@ class MainWindow(QMainWindow):
         title = QLabel("Client")
         title.setStyleSheet("font-weight: bold; font-size: 16px; color: white; border: none;")
         layout.addWidget(title)
-        
-        # Добавляем кликабельную ссылку на актуальную версию
+
         version_link = QLabel("Актуальная версия доступна здесь!")
         version_link.setStyleSheet("""
             QLabel {
@@ -201,12 +172,9 @@ class MainWindow(QMainWindow):
         return title_bar
 
     def _open_releases_page(self):
-        """Открывает страницу с релизами в браузере"""
         QDesktopServices.openUrl(QUrl("https://github.com/AlekseyElcha/PSU_Calculator/releases"))
 
-    # -------------------------------
-    #  Загрузка карточек из базы
-    # -------------------------------
+
     def load_from_db(self):
         rows = storage.get_all_configs()
         for row in rows:
@@ -242,9 +210,6 @@ class MainWindow(QMainWindow):
         h = self.height()
         return h if h > 200 else getattr(self, "default_height", 700)
 
-    # -------------------------------
-    #  Поиск
-    # -------------------------------
     def on_search_text_changed(self):
         self.search_timer.start(220)
 
@@ -268,9 +233,6 @@ class MainWindow(QMainWindow):
             ]).lower()
             w.setVisible(all(tok in searchable for tok in tokens) if tokens else True)
 
-    # -------------------------------
-    #  Удаление
-    # -------------------------------
     def _remove_card(self, card: ConfigCard):
         db_id = getattr(card, "_db_id", None)
         if db_id:
@@ -284,17 +246,14 @@ class MainWindow(QMainWindow):
         if db_id:
             storage.rename_config(db_id, new_name)
 
-    # -------------------------------
-    #  Новая конфигурация
-    # -------------------------------
     def start_calculation(self):
         self.add_btn.setText("Загрузка компонентов...")
         self.add_btn.setEnabled(False)
 
         worker = CalculationWorker(task="fetch")
         worker.finished.connect(self.open_menu)
-        worker.finished.connect(lambda: self._cleanup_worker(worker))  # Очистка после завершения
-        self._active_workers.append(worker)  # Сохраняем ссылку
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+        self._active_workers.append(worker)
         worker.start()
 
     def open_menu(self, api_data=None):
@@ -310,7 +269,6 @@ class MainWindow(QMainWindow):
                 print("Ошибка API:", e)
                 api_data = {"cpus": [], "gpus": [], "psus": []}
 
-        # Отладочная информация о загруженных данных
         print(f"Данные для диалога:")
         print(f"  CPUs: {len(api_data.get('cpus', []))}")
         print(f"  GPUs: {len(api_data.get('gpus', []))}")
@@ -364,13 +322,15 @@ class MainWindow(QMainWindow):
                 power_margin=power_margin
             )
             calc_worker.finished.connect(lambda res: self._on_calc_finished(res, progress, cpu_name, gpu_name, ram_name, ram_modules, storage_names, cooling_name, drive_name, motherboard_name, power_margin))
-            calc_worker.finished.connect(lambda: self._cleanup_worker(calc_worker))  # Очистка после завершения
-            self._active_workers.append(calc_worker)  # Сохраняем ссылку
+            calc_worker.finished.connect(lambda: self._cleanup_worker(calc_worker))
+            self._active_workers.append(calc_worker)
             calc_worker.start()
 
         self.overlay.hide()
 
-    def _on_calc_finished(self, result, progress, cpu_name="", gpu_name="", ram_name="", ram_modules=1, storage_names=None, cooling_name="", drive_name="", motherboard_name="", power_margin=20):
+    def _on_calc_finished(self, result, progress, cpu_name="", gpu_name="", ram_name="",
+                          ram_modules=1, storage_names=None, cooling_name="", drive_name="",
+                          motherboard_name="", power_margin=20):
         if progress:
             progress.close()
 
@@ -382,14 +342,11 @@ class MainWindow(QMainWindow):
         psus = result.get("psus", [])
         ram_modules_count = result.get("ram_modules", 1)
 
-        # Формируем строку для RAM с количеством модулей
         ram_display = f"{ram_name} x{ram_modules_count}" if ram_name and ram_modules_count > 1 else ram_name
-        
-        # Формируем строку для дисков
+
         storage_names = storage_names or []
         storage_display = ", ".join([name for name in storage_names if name.strip()]) if storage_names else ""
 
-        # Показываем окно с деталями расчета
         details_data = {
             "cpu_name": cpu_name,
             "gpu_name": gpu_name,
@@ -446,10 +403,6 @@ class MainWindow(QMainWindow):
         card.renamed.connect(self._on_card_renamed)
         self.card_layout.insertWidget(0, card)
 
-
-# -------------------------------
-#  Точка входа
-# -------------------------------
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     storage.setup()

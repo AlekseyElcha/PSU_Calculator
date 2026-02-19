@@ -107,12 +107,11 @@ class CalculationWorker(QThread):
                 cpu_w = self._parse_watt(cpu_entry.get("consumption", "")) if cpu_entry else 0
                 gpu_w = self._parse_watt(gpu_entry.get("consumption", "")) if gpu_entry else 0
                 ram_w_single = self._parse_watt(ram_entry.get("consumption", "")) if ram_entry else 0
-                ram_w = ram_w_single * self.ram_modules  # Умножаем на количество модулей
+                ram_w = ram_w_single * self.ram_modules
                 cooling_w = int(cooling_entry.get("consumption", 0)) if cooling_entry else 0
                 drive_w = int(drive_entry.get("consumption", 0)) if drive_entry else 0
                 motherboard_w = int(motherboard_entry.get("consumption", 0)) if motherboard_entry else 0
-                
-                # Обрабатываем несколько дисков
+
                 storage_w = 0
                 storage_details = []
                 for storage_name in self.storage_names:
@@ -128,7 +127,7 @@ class CalculationWorker(QThread):
 
                 overhead = 200
                 raw_total = cpu_w + gpu_w + ram_w + storage_w + cooling_w + drive_w + motherboard_w + overhead
-                margin_multiplier = 1.0 + (self.power_margin / 100.0)  # Преобразуем проценты в множитель
+                margin_multiplier = 1.0 + (self.power_margin / 100.0)
                 required = math.ceil(raw_total * margin_multiplier)
 
                 psu_filtered = []

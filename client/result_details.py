@@ -15,14 +15,12 @@ class ResultDetailsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
-        
-        # Заголовок
+
         title = QLabel("Подробный расчет потребления")
         title.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
-        
-        # Создаем область прокрутки для деталей
+
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("border: none;")
@@ -32,7 +30,6 @@ class ResultDetailsDialog(QDialog):
         details_layout.setSpacing(10)
         
         if result_data:
-            # Компоненты и их потребление
             self._add_component_row(details_layout, "CPU", 
                                   result_data.get("cpu_name", "Не выбран"), 
                                   result_data.get("cpu_w", 0))
@@ -40,8 +37,7 @@ class ResultDetailsDialog(QDialog):
             self._add_component_row(details_layout, "GPU", 
                                   result_data.get("gpu_name", "Не выбран"), 
                                   result_data.get("gpu_w", 0))
-            
-            # RAM с количеством модулей
+
             ram_name = result_data.get("ram_name", "Не выбран")
             ram_modules = result_data.get("ram_modules", 1)
             ram_w_single = result_data.get("ram_w_single", 0)
@@ -51,28 +47,24 @@ class ResultDetailsDialog(QDialog):
             ram_power_display = f"{ram_w_total}W ({ram_w_single}W x {ram_modules})" if ram_modules > 1 else f"{ram_w_total}W"
             
             self._add_component_row(details_layout, "RAM", ram_display, ram_power_display)
-            
-            # Storage - может быть несколько дисков
+
             storage_details = result_data.get("storage_details", [])
             total_storage_w = result_data.get("storage_w", 0)
             
             if storage_details:
-                # Показываем каждый диск отдельно
                 for i, storage in enumerate(storage_details):
                     storage_name = storage.get("name", "Неизвестный диск")
                     storage_power = storage.get("consumption", 0)
                     label = f"Диск {i+1}" if len(storage_details) > 1 else "Storage"
                     self._add_component_row(details_layout, label, storage_name, storage_power)
-                
-                # Если дисков больше одного, показываем общее потребление
+
                 if len(storage_details) > 1:
                     self._add_component_row(details_layout, "Всего дисков", 
                                           f"{len(storage_details)} шт.", 
                                           f"{total_storage_w}W")
             else:
                 self._add_component_row(details_layout, "Storage", "Не выбран", 0)
-            
-            # Новые компоненты
+
             self._add_component_row(details_layout, "Охлаждение", 
                                   result_data.get("cooling_name", "Не выбрано"), 
                                   result_data.get("cooling_w", 0))
@@ -84,14 +76,12 @@ class ResultDetailsDialog(QDialog):
             self._add_component_row(details_layout, "Материнская плата", 
                                   result_data.get("motherboard_name", "Не выбрана"), 
                                   result_data.get("motherboard_w", 0))
-            
-            # Разделитель
+
             separator = QFrame()
             separator.setFrameShape(QFrame.Shape.HLine)
             separator.setStyleSheet("color: #bdc3c7;")
             details_layout.addWidget(separator)
-            
-            # Промежуточные расчеты
+
             overhead = result_data.get("overhead", 200)
             raw_total = result_data.get("raw_total", 0)
             power_margin = result_data.get("power_margin", 20)
@@ -101,8 +91,7 @@ class ResultDetailsDialog(QDialog):
             self._add_calculation_row(details_layout, "Итого без запаса", f"{raw_total}W")
             self._add_calculation_row(details_layout, f"Запас мощности (+{power_margin}%)", 
                                     f"+{required - raw_total}W")
-            
-            # Финальный результат
+
             final_separator = QFrame()
             final_separator.setFrameShape(QFrame.Shape.HLine)
             final_separator.setStyleSheet("color: #34495e; border-width: 2px;")
@@ -121,8 +110,7 @@ class ResultDetailsDialog(QDialog):
         
         scroll.setWidget(details_widget)
         layout.addWidget(scroll)
-        
-        # Кнопка закрытия
+
         close_btn = QPushButton("Закрыть")
         close_btn.setStyleSheet("""
             QPushButton {
